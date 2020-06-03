@@ -128,27 +128,8 @@ public class DefaultS3OutputStream extends S3OutputStream {
         }
         md.setContentLength(length);
 
-        InputStream inputStream = is;
-
-        // We try to compute a MD5 while reading it
-        MessageDigest messageDigest;
-        try {
-            messageDigest = MessageDigest.getInstance("MD5");
-            inputStream = new DigestInputStream(is, messageDigest);
-        } catch (NoSuchAlgorithmException impossible) {
-            // Every implementation of the Java platform is required to support MD5 (see MessageDigest)
-            throw new RuntimeException(impossible);
-        }
-        PutObjectResult putObjectResult = blobStore.client().putObject(bucketName, blobName, inputStream, md);
-
-        String localMd5 = Base64.encodeAsString(messageDigest.digest());
-        String remoteMd5 = putObjectResult.getContentMd5();
-        if (!localMd5.equals(remoteMd5)) {
-            logger.debug("MD5 local [{}], remote [{}] are not equal...", localMd5, remoteMd5);
-            throw new AmazonS3Exception("MD5 local [" + localMd5 +
-                    "], remote [" + remoteMd5 +
-                    "] are not equal...");
-        }
+        PutObjectRequest putRequest = new PutObjectRequest(bucketName, blobName, is, md);
+        blobStore.client().putObject(putRequest);
     }
 
     private void initializeMultipart() throws IOException {
